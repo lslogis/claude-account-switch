@@ -1,0 +1,6 @@
+{
+  "name": "account-switch",
+  "owner": { "name": "lslogis" },
+  "description": "Switch between Claude subscription accounts inside a running Claude Code session",
+  "plugins": [{ "name": "account-switch", "source": "./" }]
+}
