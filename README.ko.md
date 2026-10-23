@@ -17,7 +17,7 @@ Claude 구독 계정 여러 개를 **실행 중인 세션 안에서 바로** 갈
 **필요한 것**
 - Claude Code 2.1.306 이상
 - Claude 구독 로그인(Pro 또는 Max)
-- Windows, macOS, Linux. Windows(Claude Code 2.1.309)와 macOS(2.1.306)에서 시험했습니다. Linux는 Windows와 같은 파일에 로그인을 저장하지만 아직 시험하지 않았습니다.
+- Windows, macOS, Linux. Windows(Claude Code 2.1.309), macOS(2.1.306), Ubuntu 26.04(2.1.309)에서 시험했습니다.
 
 Claude Code 세션의 입력창에서:
 

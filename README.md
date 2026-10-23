@@ -17,7 +17,7 @@ A Claude Code mod that switches between several Claude subscription accounts **i
 **Requirements**
 - Claude Code 2.1.306 or later
 - A Claude subscription login (Pro or Max)
-- Windows, macOS or Linux. Tested on Windows (Claude Code 2.1.309) and macOS (2.1.306). Linux keeps the login in the same file as Windows, but has not been tested yet.
+- Windows, macOS or Linux. Tested on Windows (Claude Code 2.1.309), macOS (2.1.306) and Ubuntu 26.04 (2.1.309).
 
 At the prompt of a Claude Code session:
 

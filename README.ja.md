@@ -17,7 +17,7 @@
 **必要なもの**
 - Claude Code 2.1.306 以降
 - Claude サブスクリプションのログイン（Pro または Max）
-- Windows、macOS、Linux。Windows（Claude Code 2.1.309）と macOS（2.1.306）で動作を確認しています。Linux は Windows と同じファイルにログインを保存しますが、まだ試していません。
+- Windows、macOS、Linux。Windows（Claude Code 2.1.309）、macOS（2.1.306）、Ubuntu 26.04（2.1.309）で動作を確認しています。
 
 Claude Code のセッションの入力欄で：
 
