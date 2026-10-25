@@ -11,7 +11,7 @@
 #       "accounts": { "<uuid>": { "org", "email" } }
 #     }
 #
-# hooks/services/readModel.ts reads it; a change to its shape bumps IndexVersion
+# hooks/desktop/services/readModel.ts reads it; a change to its shape bumps IndexVersion
 # there and here. Both sides are tested against tests/fixtures/index-sample.ts.
 
 function Write-SwitcherIndex {

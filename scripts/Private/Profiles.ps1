@@ -178,7 +178,7 @@ function Get-FreeProfileName {
 .DESCRIPTION
     The profile that holds $Account; else the profile last switched to, while it
     holds no account yet (it was just added, and the sign-in screen is where
-    its account is being signed in to). hooks/domain/profiles.ts finds it the same way,
+    its account is being signed in to). hooks/desktop/domain/profiles.ts finds it the same way,
     tested against the same cases (tests/fixtures/current-profile.ts).
 #>
 function Resolve-CurrentProfile {

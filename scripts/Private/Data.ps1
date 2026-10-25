@@ -10,7 +10,7 @@
     Claude Desktop is an MSIX app, and Windows redirects AppData writes made from
     inside its container (the mod's runs) to a private copy that a run outside it
     (a detached switch) never sees. The mod reckons it the same way
-    (hooks/platform/paths.ts), tested against tests/fixtures/data-dirs.ts.
+    (hooks/desktop/platform/paths.ts), tested against tests/fixtures/data-dirs.ts.
 #>
 function Get-DefaultDataDir {
     [CmdletBinding()]

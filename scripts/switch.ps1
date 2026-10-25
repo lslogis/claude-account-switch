@@ -79,7 +79,7 @@ $PSDefaultParameterValues['*:InformationAction'] = 'Continue'
 Import-Module (Join-Path $PSScriptRoot 'AccountSwitcher.psd1') -Force
 
 # The exit code of each category of the module's errors; any other is 1. The
-# mod reads them as hooks/services/switcher.ts's ScriptExit; both are tested
+# mod reads them as hooks/desktop/services/switcher.ts's ScriptExit; both are tested
 # against tests/fixtures/exit-codes.ts.
 $ExitCodes = @{
     InvalidArgument  = 2

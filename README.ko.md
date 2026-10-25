@@ -173,7 +173,7 @@ claude plugin uninstall account-switch
 claude --plugin-dir /path/to/claude-account-switch
 ```
 
-`hooks/register.tsx`를 고친 뒤에는 그 세션에서 `/reload-plugins`를 실행합니다. Claude Code 2.1.309보다 오래된 버전은 `/reload-plugins`로 폴더를 다시 읽지 않으니 claude를 재시작하세요. `claude plugin validate .`로 manifest와 모듈을 검사하고, Claude Code가 mod를 한 번 불러온 뒤에는 `tsc -p .`로 타입 검사를 할 수 있습니다.
+`hooks/register.tsx`를 고친 뒤에는 그 세션에서 `/reload-plugins`를 실행합니다. Claude Code 2.1.309보다 오래된 버전은 `/reload-plugins`로 폴더를 다시 읽지 않으니 claude를 재시작하세요. `claude plugin validate .`로 manifest와 모듈을 검사하고, Claude Code가 mod를 한 번 불러온 뒤에는 `tsc -p .`로 타입 검사를 할 수 있습니다. `claude plugin test .`는 `tests/`의 테스트를 돌리고, PowerShell 모듈 테스트는 Windows PowerShell 5.1의 Pester 5로 돌립니다: `powershell -NoProfile -Command "Invoke-Pester tests"`.
 
 ```
 .claude-plugin/plugin.json        mod 정보
@@ -183,6 +183,7 @@ hooks/register.tsx                연결: 각 훅을 터미널 쪽이나 데스�
 hooks/cli/account.tsx             터미널: /account 명령, 창, 동기화, 교체, 진단
 hooks/desktop/                    데스크톱 앱: 계정 교체(Windows)와 띠의 상태 부분
 scripts/                          데스크톱 앱 로그인을 갈아 끼우는 PowerShell 모듈(Windows)
+tests/                            mod 테스트(claude plugin test)와 PowerShell 모듈 테스트(Pester)
 types/index.d.ts                  mod 상태 정의
 tsconfig.json                     타입 검사 설정
 ```

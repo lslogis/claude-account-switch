@@ -173,7 +173,7 @@ Run a session with the mod loaded straight from a clone:
 claude --plugin-dir /path/to/claude-account-switch
 ```
 
-After editing `hooks/register.tsx`, run `/reload-plugins` in that session. Claude Code before 2.1.309 does not read the folder again on `/reload-plugins`: restart claude instead. `claude plugin validate .` checks the manifest and the module, and once Claude Code has loaded the mod, `tsc -p .` type-checks it.
+After editing `hooks/register.tsx`, run `/reload-plugins` in that session. Claude Code before 2.1.309 does not read the folder again on `/reload-plugins`: restart claude instead. `claude plugin validate .` checks the manifest and the module, and once Claude Code has loaded the mod, `tsc -p .` type-checks it. `claude plugin test .` runs the tests in `tests/`; the PowerShell module's tests run with Pester 5 under Windows PowerShell 5.1: `powershell -NoProfile -Command "Invoke-Pester tests"`.
 
 ```
 .claude-plugin/plugin.json        mod manifest
@@ -183,6 +183,7 @@ hooks/register.tsx                wiring: sends each hook to the terminal or the
 hooks/cli/account.tsx             terminal: /account command, panels, sync, switching, diagnostics
 hooks/desktop/                    Claude Desktop: account switching (Windows) and the status part of the band
 scripts/                          PowerShell module that swaps Claude Desktop's sign-in (Windows)
+tests/                            mod tests (claude plugin test) and the PowerShell module's (Pester)
 types/index.d.ts                  the mod's state contract
 tsconfig.json                     type-checking settings
 ```

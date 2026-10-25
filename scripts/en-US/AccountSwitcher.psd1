@@ -5,7 +5,7 @@
 # message counted has a form for each plural category, <Name>One and <Name>Other
 # (Get-SwitcherPluralText).
 #
-# The mod's own words are in hooks/ui/strings.ts.
+# The mod's own words are in hooks/desktop/ui/strings.ts.
 @{
     # --- Data folder and lock -------------------------------------------------------
     DataTooNew             = 'The switcher''s data was written by a later version (layout {0}; this one reads up to {1}). Update the mod.'

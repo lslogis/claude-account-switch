@@ -1,6 +1,6 @@
 {
   "name": "account-switch",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Switch between Claude subscription accounts. In a terminal: /account switches inside the running session. In Claude Desktop: one band above the prompt with the session's status and, on Windows, the plan limits and an account picker (a switch restarts the app)",
   "author": { "name": "lslogis" },
   "homepage": "https://github.com/lslogis/claude-account-switch",

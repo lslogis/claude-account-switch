@@ -78,6 +78,7 @@ function Invoke-AccountSwitcher {
     $runDir = if (-not $RunId -or $Detach) { $null } elseif ($DataDir) { $DataDir } else { Get-DefaultDataDir }
     if ($runDir) { Write-SwitchRunStatus -DataDir $runDir -RunId $RunId -Command $Command -State running }
     $isOpen = $false
+    $dialog = $null
     try {
         Enter-SwitcherData -DataDir $DataDir -Change:($Command -ne 'list' -and -not $Detach)
         $isOpen = $true
@@ -125,9 +126,12 @@ function Invoke-AccountSwitcher {
         # dialog once it went on to close Claude, and that mod with it.
         Write-SwitcherLog (Get-SwitcherText LogError $_.Exception.Message) -InformationAction SilentlyContinue
         if ($runDir) { Write-SwitchRunStatus -DataDir $runDir -RunId $RunId -Command $Command -State failed -Message $_.Exception.Message }
-        if ($Background -and $script:IsClaudeLeft) { Show-SwitcherError $_.Exception.Message }
+        # The dialog waits for the lock to be let go (finally): a dialog left open
+        # must not hold every other command of the switcher at the lock.
+        if ($Background -and $script:IsClaudeLeft) { $dialog = $_.Exception.Message }
         throw
     } finally {
         if ($isOpen) { Exit-SwitcherData }
+        if ($dialog) { Show-SwitcherError $dialog }
     }
 }

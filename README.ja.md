@@ -173,13 +173,18 @@ claude plugin uninstall account-switch
 claude --plugin-dir /path/to/claude-account-switch
 ```
 
-`hooks/register.tsx` を編集したら、そのセッションで `/reload-plugins` を実行します。Claude Code 2.1.309 より前のバージョンは `/reload-plugins` でフォルダを読み直さないため、claude を再起動してください。`claude plugin validate .` でマニフェストとモジュールを検査でき、Claude Code が mod を一度読み込んだあとは `tsc -p .` で型チェックができます。
+`hooks/register.tsx` を編集したら、そのセッションで `/reload-plugins` を実行します。Claude Code 2.1.309 より前のバージョンは `/reload-plugins` でフォルダを読み直さないため、claude を再起動してください。`claude plugin validate .` でマニフェストとモジュールを検査でき、Claude Code が mod を一度読み込んだあとは `tsc -p .` で型チェックができます。`claude plugin test .` は `tests/` のテストを実行し、PowerShell モジュールのテストは Windows PowerShell 5.1 の Pester 5 で実行します: `powershell -NoProfile -Command "Invoke-Pester tests"`。
 
 ```
 .claude-plugin/plugin.json        mod のマニフェスト
 .claude-plugin/marketplace.json   このリポジトリを /plugin install でインストールできるようにする
 hooks/hooks.json                  モジュールの一覧
-hooks/register.tsx                /account コマンド、画面、同期、切り替え、診断
+hooks/register.tsx                接続: 各フックをターミナル側かデスクトップ側へ送る
+hooks/cli/account.tsx             ターミナル: /account コマンド、画面、同期、切り替え、診断
+hooks/desktop/                    Claude Desktop: アカウント切り替え(Windows)と帯のステータス部分
+scripts/                          Claude Desktop のサインインを入れ替える PowerShell モジュール(Windows)
+tests/                            mod のテスト(claude plugin test)と PowerShell モジュールのテスト(Pester)
+types/index.d.ts                  mod の状態の定義
 tsconfig.json                     型チェックの設定
 ```
 

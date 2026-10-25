@@ -5,7 +5,7 @@ import type { EngineInterface, RenderInput } from 'claude-code'
 
 // One subscription login: the claudeAiOauth field of the live login (.credentials.json, or the Keychain on macOS), as is.
 // The same document's mcpOAuth (MCP server logins) has nothing to do with the account and is left alone.
-export type Oauth = {
+type Oauth = {
   accessToken: string
   refreshToken?: string
   expiresAt?: number
@@ -13,23 +13,23 @@ export type Oauth = {
   scopes?: string[]
   subscriptionType?: string
 }
-export type Account = { email: string; plan: string; oauth: Oauth; savedAt: number }
-export type Book = { accounts: Record<string, Account>; current?: string }
-export type Who = { email: string; plan: string }
+type Account = { email: string; plan: string; oauth: Oauth; savedAt: number }
+type Book = { accounts: Record<string, Account>; current?: string }
+type Who = { email: string; plan: string }
 // The server's verdict: ok says whose, revoked is a refused token (401/403), unknown is network or server trouble
-export type Probe = { kind: 'ok'; who: Who } | { kind: 'revoked' } | { kind: 'unknown' }
+type Probe = { kind: 'ok'; who: Who } | { kind: 'revoked' } | { kind: 'unknown' }
 
 export const PICK = 'account-pick'
 export const REMOVE = 'account-remove'
-export const DAY = 86_400_000
-export const PROFILE_URL = 'https://api.anthropic.com/api/oauth/profile'
-export const PROFILE_TIMEOUT = 8_000
-export const RETRY_AFTER = 5 * 60_000
+const DAY = 86_400_000
+const PROFILE_URL = 'https://api.anthropic.com/api/oauth/profile'
+const PROFILE_TIMEOUT = 8_000
+const RETRY_AFTER = 5 * 60_000
 
 // A failure meant for the person: its message is shown as is.
-export class Refusal extends Error {}
+class Refusal extends Error {}
 
-export async function configDir($: EngineInterface): Promise<string> {
+async function configDir($: EngineInterface): Promise<string> {
   const dir = await $.env.get('CLAUDE_CONFIG_DIR')
   if (dir) return dir.replace(/[\\/]+$/, '')
   const home = (await $.env.get('USERPROFILE')) ?? (await $.env.get('HOME'))
@@ -37,18 +37,18 @@ export async function configDir($: EngineInterface): Promise<string> {
   return home.replace(/[\\/]+$/, '') + '/.claude'
 }
 
-export async function credPath($: EngineInterface) {
+async function credPath($: EngineInterface) {
   return (await configDir($)) + '/.credentials.json'
 }
-export async function bookPath($: EngineInterface) {
+async function bookPath($: EngineInterface) {
   return (await configDir($)) + '/account-switch.json'
 }
-export async function isWindows($: EngineInterface) {
+async function isWindows($: EngineInterface) {
   return (await $.env.get('USERPROFILE')) !== undefined
 }
 
 let macCache: boolean | undefined
-export async function isMac($: EngineInterface): Promise<boolean> {
+async function isMac($: EngineInterface): Promise<boolean> {
   if (macCache !== undefined) return macCache
   if (await isWindows($)) return (macCache = false)
   const r = await $.process.run(['uname', '-s']).catch(() => null)
@@ -57,7 +57,7 @@ export async function isMac($: EngineInterface): Promise<boolean> {
 
 // Claude Code's keychain item on macOS: "Claude Code-credentials", plus a hash of the config folder
 // when CLAUDE_CONFIG_DIR (or CLAUDE_SECURESTORAGE_CONFIG_DIR) points elsewhere.
-export async function keychainService($: EngineInterface): Promise<string> {
+async function keychainService($: EngineInterface): Promise<string> {
   const base = 'Claude Code-credentials'
   const secure = await $.env.get('CLAUDE_SECURESTORAGE_CONFIG_DIR')
   const dir = secure !== undefined ? secure : await $.env.get('CLAUDE_CONFIG_DIR')
@@ -68,7 +68,7 @@ export async function keychainService($: EngineInterface): Promise<string> {
 }
 
 // security prints a password that is not plain text as hex
-export function fromSecurity(out: string): string {
+function fromSecurity(out: string): string {
   const t = out.trim()
   if (/^[0-9a-f]+$/i.test(t) && t.length % 2 === 0) {
     const bytes = new Uint8Array(t.match(/../g)!.map(h => parseInt(h, 16)))
@@ -78,11 +78,11 @@ export function fromSecurity(out: string): string {
 }
 
 // Where Claude keeps the live login: the macOS Keychain, else .credentials.json
-export async function slotName($: EngineInterface): Promise<string> {
+async function slotName($: EngineInterface): Promise<string> {
   return (await isMac($)) ? `macOS Keychain (${await keychainService($)})` : await credPath($)
 }
 
-export async function readSlot($: EngineInterface): Promise<string | null> {
+async function readSlot($: EngineInterface): Promise<string | null> {
   if (!(await isMac($))) {
     const path = await credPath($)
     return (await $.fs.exists(path)) ? await $.fs.read(path) : null
@@ -93,7 +93,7 @@ export async function readSlot($: EngineInterface): Promise<string | null> {
   return fromSecurity(r.stdout)
 }
 
-export async function writeSlot($: EngineInterface, text: string) {
+async function writeSlot($: EngineInterface, text: string) {
   if (!(await isMac($))) return $.fs.write(await credPath($), text)
   const service = await keychainService($)
   // Keep the item's own account name: it differs between Claude Code versions
@@ -108,7 +108,7 @@ export async function writeSlot($: EngineInterface, text: string) {
 }
 
 // Missing (null) and broken (throw) are kept apart: reading a broken file as empty and writing it back loses tokens
-export async function readJson<T>($: EngineInterface, path: string): Promise<T | null> {
+async function readJson<T>($: EngineInterface, path: string): Promise<T | null> {
   if (!(await $.fs.exists(path))) return null
   const text = await $.fs.read(path)
   try {
@@ -118,11 +118,11 @@ export async function readJson<T>($: EngineInterface, path: string): Promise<T |
   }
 }
 
-export function isBook(v: unknown): v is Book {
+function isBook(v: unknown): v is Book {
   return typeof v === 'object' && v !== null && typeof (v as Book).accounts === 'object' && (v as Book).accounts !== null
 }
 
-export async function loadBook($: EngineInterface): Promise<Book> {
+async function loadBook($: EngineInterface): Promise<Book> {
   const path = await bookPath($)
   for (const p of [path, path + '.bak']) {
     let raw: unknown
@@ -146,7 +146,7 @@ export async function loadBook($: EngineInterface): Promise<Book> {
 
 // Other windows use the same store: read it again right before writing and keep the newer entry per account.
 // The current content goes to .bak first, so a write cut short can fall back one step.
-export async function saveBook($: EngineInterface, book: Book, removed?: string) {
+async function saveBook($: EngineInterface, book: Book, removed?: string) {
   const path = await bookPath($)
   const disk = await loadBook($)
   for (const [email, theirs] of Object.entries(disk.accounts)) {
@@ -164,13 +164,13 @@ export async function saveBook($: EngineInterface, book: Book, removed?: string)
   }
 }
 
-export function planOf(type?: string): string {
+function planOf(type?: string): string {
   const t = (type ?? '').replace(/^claude_/, '')
   return t ? t.charAt(0).toUpperCase() + t.slice(1) : '?'
 }
 
 // Asks the server whose token this is, without waiting long.
-export async function probe($: EngineInterface, oauth: Oauth): Promise<Probe> {
+async function probe($: EngineInterface, oauth: Oauth): Promise<Probe> {
   try {
     const r = await Promise.race([
       $.http.fetch(PROFILE_URL, {
@@ -193,7 +193,7 @@ export async function probe($: EngineInterface, oauth: Oauth): Promise<Probe> {
   }
 }
 
-export async function readLive($: EngineInterface): Promise<{ file: Record<string, unknown> | null; oauth?: Oauth }> {
+async function readLive($: EngineInterface): Promise<{ file: Record<string, unknown> | null; oauth?: Oauth }> {
   const text = await readSlot($)
   if (text === null) return { file: null }
   let file: Record<string, unknown>
@@ -213,7 +213,7 @@ let unknownToken: { token: string; at: number } | undefined
 // A token the session refreshed, or a new account /login put there, is followed into the store here.
 // isSettled false: whose the live token is could not be confirmed, and the store was left untouched.
 // isQuiet: the background check (every message), which skips a token the server just failed to answer for.
-export async function syncNow(
+async function syncNow(
   $: EngineInterface,
   isQuiet = false,
 ): Promise<{ book: Book; current?: string; isSettled: boolean }> {
@@ -262,7 +262,7 @@ export async function syncNow(
 
 // Reads and writes of the two files run one at a time
 let queue: Promise<unknown> = Promise.resolve()
-export function serial<T>(job: () => Promise<T>): Promise<T> {
+function serial<T>(job: () => Promise<T>): Promise<T> {
   const run = queue.then(job, job)
   queue = run.catch(() => undefined)
   return run
@@ -278,12 +278,12 @@ export function messageOf(err: unknown): string {
 }
 
 // A refresh token lives a fixed time from login (refreshing does not extend it): warn before it ends
-export function isExpired(a: Account): boolean {
+function isExpired(a: Account): boolean {
   const until = a.oauth.refreshTokenExpiresAt
   return until !== undefined && until < Date.now()
 }
 
-export function expiry(a: Account): string {
+function expiry(a: Account): string {
   const until = a.oauth.refreshTokenExpiresAt
   if (!until) return ''
   if (isExpired(a)) return '  ⚠ login expired — log in again'
@@ -343,7 +343,7 @@ export async function switchTo($: EngineInterface, email: string): Promise<strin
   })
 }
 
-export async function removeAccount($: EngineInterface, email: string): Promise<string> {
+async function removeAccount($: EngineInterface, email: string): Promise<string> {
   return serial(async () => {
     const { book, current } = await syncNow($)
     if (!book.accounts[email]) throw new Refusal(`Not a saved account: ${email}`)
@@ -354,7 +354,7 @@ export async function removeAccount($: EngineInterface, email: string): Promise<
   })
 }
 
-export function startLogin($: EngineInterface) {
+function startLogin($: EngineInterface) {
   // /login runs once the session is idle: hand it off without waiting. The login hook below saves the account.
   void $.command.run({ command: 'login' }).catch(err => $.ui.toast(`Could not start login: ${messageOf(err)}`))
 }
