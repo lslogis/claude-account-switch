@@ -1,10 +1,19 @@
 {
   "name": "account-switch",
-  "version": "1.0.1",
-  "description": "Switch between Claude subscription accounts inside a running Claude Code session from /account",
+  "version": "1.1.0",
+  "description": "Switch between Claude subscription accounts. In a terminal: /account switches inside the running session. In Claude Desktop: one band above the prompt with the session's status and, on Windows, the plan limits and an account picker (a switch restarts the app)",
   "author": { "name": "lslogis" },
   "homepage": "https://github.com/lslogis/claude-account-switch",
   "repository": "https://github.com/lslogis/claude-account-switch",
   "license": "MIT",
-  "keywords": ["account", "subscription", "login", "switch"]
+  "keywords": ["account", "subscription", "login", "switch", "claude-desktop", "statusline", "limits"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "cache_ttl": {
+      "type": "string",
+      "title": "Prompt-cache TTL",
+      "description": "How long your main conversation's prompt cache lives: 1h or 5m (anything else counts as 1h). The desktop band marks the cache cold after this much idle time: 1h on a Claude subscription within plan usage, 5m with pay-as-you-go API billing, a cloud provider or usage credits.",
+      "default": "1h"
+    }
+  }
 }

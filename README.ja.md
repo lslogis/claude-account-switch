@@ -10,6 +10,17 @@
 /account check      診断：フォルダ、ファイル、サーバーの応答、有効期限
 ```
 
+
+### Claude デスクトップアプリでは
+
+デスクトップアプリはログインをセッションに直接渡すため、アプリ内では `/account` でその場の切り替えはできません。代わりにデスクトップアプリでは**入力欄の上に帯を 1 本**描きます。
+
+- セッションの状態：フォルダーと git ブランチ、セッション時間、プロンプト数と費用、直前のターンのモデル・時間・キャッシュ率、待機時間、圧縮回数、実行中のエージェントとワークフロー
+- Windows ではアカウント部分：コンテキスト、プランの 5 時間・週間の上限、**アカウントボタン**。別のアカウントを選ぶとデスクトップアプリがそのアカウントで再起動します（実行中の作業は止まります）。**Manage accounts…** で追加・名前変更・削除ができ、新しいアカウントへの最初の切り替えで Claude のログイン画面が開きます
+- `/account` は同じアカウント一覧を開きます
+
+使用上限の 80%・95% で通知が届きます。この帯はデスクトップアプリでだけ描かれ、ターミナルでは動きません。ターミナル側もデスクトップアプリでは動きません。
+
 ---
 
 ## インストール
@@ -174,4 +185,4 @@ tsconfig.json                     型チェックの設定
 
 ## ライセンス
 
-MIT
+MIT。デスクトップのアカウント部分（`status.tsx` を除く `hooks/desktop/` と `scripts/`）は plexxed の [claude-desktop-account-switcher](https://github.com/plexxed/claude-desktop-account-switcher)、状態部分（`hooks/desktop/status.tsx`）は George Liu の [desktop-statusline](https://github.com/centminmod/claude-plugins) から取り込んだもので、どちらも MIT です。元のライセンスは `licenses/` にあります。保存済みのデスクトップのログインは、単体の switcher と同じ `~/.claude/plugins/data/account-switcher/` に残ります。

@@ -10,6 +10,17 @@ Claude 구독 계정 여러 개를 **실행 중인 세션 안에서 바로** 갈
 /account check      진단: 폴더, 파일, 서버 응답, 만료일
 ```
 
+
+### Claude 데스크톱 앱에서
+
+데스크톱 앱은 로그인을 직접 세션에 넘겨서, 앱 안에서는 `/account`로 그 자리에서 바꿀 수 없습니다. 대신 데스크톱 앱에서는 **입력창 위에 띠 하나**를 그립니다.
+
+- 세션 상태: 폴더와 git 브랜치, 세션 시간, 프롬프트 수와 비용, 마지막 턴의 모델·시간·캐시 적중률, 대기 시간, 압축 횟수, 돌고 있는 에이전트와 워크플로
+- Windows에서는 계정 부분: 컨텍스트, 요금제의 5시간·주간 한도, **계정 버튼**. 다른 계정을 고르면 데스크톱 앱이 그 계정으로 다시 켜집니다(돌던 작업은 멈춤). **Manage accounts…** 에서 계정을 추가·이름 바꾸기·삭제하고, 새 계정으로 처음 바꿀 때 Claude 로그인 화면이 뜹니다
+- `/account`는 같은 계정 목록을 엽니다
+
+사용량 한도 80%·95%에서 알림이 옵니다. 이 띠는 데스크톱 앱에서만 그려지고, 터미널에서는 전혀 돌지 않습니다. 반대로 터미널 부분도 데스크톱 앱에서는 돌지 않습니다.
+
 ---
 
 ## 설치
@@ -168,10 +179,14 @@ claude --plugin-dir /path/to/claude-account-switch
 .claude-plugin/plugin.json        mod 정보
 .claude-plugin/marketplace.json   이 저장소를 /plugin install로 설치할 수 있게 함
 hooks/hooks.json                  모듈 목록
-hooks/register.tsx                /account 명령, 창, 동기화, 교체, 진단
+hooks/register.tsx                연결: 각 훅을 터미널 쪽이나 데스크톱 쪽으로 보냄
+hooks/cli/account.tsx             터미널: /account 명령, 창, 동기화, 교체, 진단
+hooks/desktop/                    데스크톱 앱: 계정 교체(Windows)와 띠의 상태 부분
+scripts/                          데스크톱 앱 로그인을 갈아 끼우는 PowerShell 모듈(Windows)
+types/index.d.ts                  mod 상태 정의
 tsconfig.json                     타입 검사 설정
 ```
 
 ## 라이선스
 
-MIT
+MIT. 데스크톱 계정 부분(`status.tsx`를 뺀 `hooks/desktop/`, `scripts/`)은 plexxed의 [claude-desktop-account-switcher](https://github.com/plexxed/claude-desktop-account-switcher)에서, 상태 부분(`hooks/desktop/status.tsx`)은 George Liu의 [desktop-statusline](https://github.com/centminmod/claude-plugins)에서 가져왔고 둘 다 MIT입니다. 원문 라이선스는 `licenses/`에 있습니다. 저장된 데스크톱 로그인은 따로 쓰던 때와 같은 `~/.claude/plugins/data/account-switcher/`에 그대로 있습니다.

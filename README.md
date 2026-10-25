@@ -10,6 +10,17 @@ A Claude Code mod that switches between several Claude subscription accounts **i
 /account check      diagnostics: folders, files, what the server says, expiry dates
 ```
 
+
+### In Claude Desktop
+
+Claude Desktop hands its session the login itself, so `/account` can't switch there in place. In the desktop app the mod draws **one band above the prompt** instead:
+
+- the session's status: folder and git branch, session age, prompts and cost, the last turn's model, time and cache hit, idle time, compactions, running agents and workflow runs
+- on Windows, the account part: context, the plan's 5-hour and weekly limits, and the **account picker**. Pick another account and Claude Desktop restarts on it (running tasks stop). **Manage accounts…** adds, renames and removes accounts; the first switch to a new one opens Claude's sign-in screen
+- `/account` opens the same Accounts list
+
+A notification comes at 80% and 95% of a usage limit. The band draws only in the desktop app; nothing of it runs in a terminal, and nothing of the terminal part runs in the desktop app.
+
 ---
 
 ## Install
@@ -168,10 +179,14 @@ After editing `hooks/register.tsx`, run `/reload-plugins` in that session. Claud
 .claude-plugin/plugin.json        mod manifest
 .claude-plugin/marketplace.json   makes this repository installable with /plugin install
 hooks/hooks.json                  module list
-hooks/register.tsx                /account command, panels, sync, switching, diagnostics
+hooks/register.tsx                wiring: sends each hook to the terminal or the desktop part
+hooks/cli/account.tsx             terminal: /account command, panels, sync, switching, diagnostics
+hooks/desktop/                    Claude Desktop: account switching (Windows) and the status part of the band
+scripts/                          PowerShell module that swaps Claude Desktop's sign-in (Windows)
+types/index.d.ts                  the mod's state contract
 tsconfig.json                     type-checking settings
 ```
 
 ## License
 
-MIT
+MIT. The desktop account part (`hooks/desktop/` except `status.tsx`, and `scripts/`) comes from [claude-desktop-account-switcher](https://github.com/plexxed/claude-desktop-account-switcher) by plexxed, and the status part (`hooks/desktop/status.tsx`) from [desktop-statusline](https://github.com/centminmod/claude-plugins) by George Liu, both MIT; their licenses are in `licenses/`. Saved desktop sign-ins stay in `~/.claude/plugins/data/account-switcher/`, where the stand-alone switcher kept them.
