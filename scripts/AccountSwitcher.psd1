@@ -4,7 +4,7 @@
 # in en-US\AccountSwitcher.psd1.
 @{
     RootModule           = 'AccountSwitcher.psm1'
-    ModuleVersion        = '1.1.3'
+    ModuleVersion        = '1.1.4'
     GUID                 = 'e097104e-18df-4c0b-85a4-701b70368487'
     Description          = 'Saved sign-ins for Claude Desktop on Windows, and the Code session lists the saved accounts may share (unofficial).'
     PowerShellVersion    = '5.1'

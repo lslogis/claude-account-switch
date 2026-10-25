@@ -146,20 +146,29 @@ async function loadBook($: EngineInterface): Promise<Book> {
 
 // Other windows use the same store: read it again right before writing and keep the newer entry per account.
 // Another window can still write between that read and our write and drop our entries: read once more after
-// writing, and write again (merged the same way) while an entry of ours is missing or older there.
+// writing, and write again (merged the same way) while an entry of ours (one this save made newer) is missing
+// or older there. Any other entry gone from there was removed in another window, and stays gone.
 async function saveBook($: EngineInterface, book: Book, removed?: string) {
+  let ours: string[] = []
   for (let tries = 0; tries < 3; tries++) {
-    await writeBook($, book, removed)
+    const wrote = await writeBook($, book, removed)
+    if (tries === 0) ours = wrote
     const disk = await loadBook($)
-    const isLost = Object.values(book.accounts).some(a => (disk.accounts[a.email]?.savedAt ?? 0) < a.savedAt)
-    if (!isLost) return
+    if (!ours.some(email => (disk.accounts[email]?.savedAt ?? 0) < (book.accounts[email]?.savedAt ?? 0))) return
+    for (const email of Object.keys(book.accounts)) {
+      if (!ours.includes(email) && !disk.accounts[email]) delete book.accounts[email]
+    }
   }
 }
 
 // The current content goes to .bak first, so a write cut short can fall back one step.
-async function writeBook($: EngineInterface, book: Book, removed?: string) {
+// Returns the accounts whose entry this write made newer than the store's.
+async function writeBook($: EngineInterface, book: Book, removed?: string): Promise<string[]> {
   const path = await bookPath($)
   const disk = await loadBook($)
+  const newer = Object.values(book.accounts)
+    .filter(a => (disk.accounts[a.email]?.savedAt ?? -Infinity) < a.savedAt)
+    .map(a => a.email)
   for (const [email, theirs] of Object.entries(disk.accounts)) {
     if (email === removed) continue
     const mine = book.accounts[email]
@@ -173,6 +182,7 @@ async function writeBook($: EngineInterface, book: Book, removed?: string) {
     const files = hasOld ? [path, path + '.bak'] : [path]
     await $.process.run(['chmod', '600', ...files]).catch(() => undefined)
   }
+  return newer
 }
 
 function planOf(type?: string): string {

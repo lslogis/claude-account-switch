@@ -16,9 +16,13 @@ const STORED = JSON.stringify({
 
 // A Windows home holding the store and a live login the session refreshed (same refresh token, new access token).
 // afterWrite runs after each write of the store, as another window that writes right then.
-function terminalHost(on: On, afterWrite: (files: Map<string, string>, writes: number) => void = () => undefined) {
+function terminalHost(
+  on: On,
+  afterWrite: (files: Map<string, string>, writes: number) => void = () => undefined,
+  stored = STORED,
+) {
   const files = new Map([
-    [BOOK, STORED],
+    [BOOK, stored],
     [CRED, JSON.stringify({ claudeAiOauth: { accessToken: 'new', refreshToken: 'r1' } })],
   ])
   let writes = 0
@@ -67,4 +71,40 @@ test('a window that keeps writing over ours: three tries, then it stops', async 
   const host = terminalHost(on, files => files.set(BOOK, STORED))
   await start($, on)
   expect(host.writes()).toBe(3)
+})
+
+// The store with a second account, b@x.com, that another window removes while this one saves.
+const WITH_B = JSON.stringify({
+  accounts: {
+    ...JSON.parse(STORED).accounts,
+    'b@x.com': { email: 'b@x.com', plan: 'Max', oauth: { accessToken: 'b', refreshToken: 'rb' }, savedAt: 1 },
+  },
+})
+const accountsIn = (files: Map<string, string>) => Object.keys(JSON.parse(files.get(BOOK) ?? '{}').accounts).sort()
+const withoutB = (files: Map<string, string>) => {
+  const book = JSON.parse(files.get(BOOK) ?? '{}')
+  delete book.accounts['b@x.com']
+  return JSON.stringify(book)
+}
+
+test('an account another window removed right after our write stays removed', async ($: Engine, on: On) => {
+  // The other window read our write and wrote it back without b@x.com.
+  const host = terminalHost(on, (files, writes) => {
+    if (writes === 1) files.set(BOOK, withoutB(files))
+  }, WITH_B)
+  await start($, on)
+  expect(accountsIn(host.files)).toEqual(['a@x.com'])
+  expect(tokenIn(host.files)).toBe('new')
+  expect(host.writes()).toBe(1)
+})
+
+test('written again over an older copy that also removed an account: ours kept, the removed one not put back', async ($: Engine, on: On) => {
+  // The other window read the store before our write, removed b@x.com, and wrote just after us.
+  const host = terminalHost(on, (files, writes) => {
+    if (writes === 1) files.set(BOOK, STORED)
+  }, WITH_B)
+  await start($, on)
+  expect(accountsIn(host.files)).toEqual(['a@x.com'])
+  expect(tokenIn(host.files)).toBe('new')
+  expect(host.writes()).toBe(2)
 })
