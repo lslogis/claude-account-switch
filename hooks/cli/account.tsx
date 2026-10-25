@@ -145,8 +145,19 @@ async function loadBook($: EngineInterface): Promise<Book> {
 }
 
 // Other windows use the same store: read it again right before writing and keep the newer entry per account.
-// The current content goes to .bak first, so a write cut short can fall back one step.
+// Another window can still write between that read and our write and drop our entries: read once more after
+// writing, and write again (merged the same way) while an entry of ours is missing or older there.
 async function saveBook($: EngineInterface, book: Book, removed?: string) {
+  for (let tries = 0; tries < 3; tries++) {
+    await writeBook($, book, removed)
+    const disk = await loadBook($)
+    const isLost = Object.values(book.accounts).some(a => (disk.accounts[a.email]?.savedAt ?? 0) < a.savedAt)
+    if (!isLost) return
+  }
+}
+
+// The current content goes to .bak first, so a write cut short can fall back one step.
+async function writeBook($: EngineInterface, book: Book, removed?: string) {
   const path = await bookPath($)
   const disk = await loadBook($)
   for (const [email, theirs] of Object.entries(disk.accounts)) {
