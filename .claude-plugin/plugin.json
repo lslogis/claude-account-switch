@@ -1,6 +1,6 @@
 {
   "name": "account-switch",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Switch between Claude subscription accounts inside a running Claude Code session from /account",
   "author": { "name": "lslogis" },
   "homepage": "https://github.com/lslogis/claude-account-switch",

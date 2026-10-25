@@ -414,7 +414,7 @@ export const register: Register = on => {
       .then(({ book, current }) => showStatus($, book, current))
       .catch(() => undefined)
     return next(e)
-  })
+  }).catch((_, e, next) => next(e)) // If this hook fails, the message still goes through (an earlier next result is reused)
 
   // /login typed by hand or started from /account: save the account before it, register the one after
   on('command.run', { command: 'login' }, async ($, e, next) => {
@@ -428,7 +428,7 @@ export const register: Register = on => {
       $.ui.toast(messageOf(err))
     }
     return result
-  })
+  }).catch((_, e, next) => next(e)) // If the sync after login fails or overruns, /login does not run twice: the result it already had is returned
 
   on('command.run', { command: 'account' }, async ($, e) => {
     try {
