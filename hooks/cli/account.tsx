@@ -107,7 +107,13 @@ async function writeSlot($: EngineInterface, text: string) {
   // Keep the item's own account name: it differs between Claude Code versions
   const info = await $.process.run(['security', 'find-generic-password', '-s', service])
   const account = /"acct"<blob>="([^"]*)"/.exec(info.stdout)?.[1] ?? 'claude-code-user'
-  const r = await $.process.run(['security', 'add-generic-password', '-U', '-a', account, '-s', service, '-w', text])
+  // The login goes in on stdin (security -i), in hex: as an argument (-w) any local user's ps could read it.
+  // In that command line a name is quoted, its \ and " escaped.
+  const quoted = (s: string) => `"${s.replace(/[\\"]/g, '\\$&')}"`
+  const hex = [...new TextEncoder().encode(text)].map(b => b.toString(16).padStart(2, '0')).join('')
+  const r = await $.process.run(['security', '-i'], {
+    stdin: `add-generic-password -U -a ${quoted(account)} -s ${quoted(service)} -X ${hex}\n`,
+  })
   if (r.exitCode !== 0) throw new Refusal(`Could not write the macOS Keychain (security exited ${r.exitCode})`)
   // A running session decides whether to read its login again by the modification time of
   // .credentials.json, even on macOS: touch it (contents untouched) so the session notices.
