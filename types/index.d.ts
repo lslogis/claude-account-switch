@@ -9,8 +9,8 @@ export type Panel =
   | { kind: 'switch'; profile: string }
   | { kind: 'add' }
 
-/** A command of the switcher that changes the profiles or the sign-in (hooks/commands/registry.ts). */
-export type ProfileCommand = 'switch' | 'save' | 'add' | 'new' | 'rename' | 'delete' | 'share'
+/** A command of the switcher that changes the profiles or the sign-in (hooks/desktop/commands/registry.ts). */
+export type ProfileCommand = 'switch' | 'save' | 'add' | 'rename' | 'delete' | 'share'
 
 /**
  * A command the person gave that is running (the script's command and the
@@ -57,7 +57,7 @@ export type StatusAgent = {
 
 export type WorkflowRun = { runId: string; total: number; active: number; done: number; failed: number }
 
-export type Snapshot = {
+export type StatusSnapshot = {
   at: number
   startedAt: number
   prompts: number
@@ -95,7 +95,7 @@ declare module 'claude-code' {
       panel: Panel
       busy: { shape: string; value: Busy | null }
       meter: { shape: string; value: Meter | null }
-      snap: Snapshot | null
+      snap: StatusSnapshot | null
       warned: string[]
       lastTurn: TurnStat | null
       compactions: Compactions | null

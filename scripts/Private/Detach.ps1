@@ -48,9 +48,9 @@ function Get-DetachedCommandLine {
     return (ConvertTo-CommandLineArgument $powershell) + ' ' + ($arguments -join ' ')
 }
 
-# Throws when $Command would fail or do nothing, checked before it runs (before
-# a detached run starts, while its caller still waits): a name not valid or not
-# saved, a new name taken, a switch to the profile signed in now.
+# Throws when $Command would fail or do nothing, checked before every run of it
+# (so also before a detached run starts, while its caller still waits): a name
+# not valid or not saved, a new name taken, a switch to the profile signed in now.
 function Assert-CommandDue {
     [CmdletBinding()]
     param([string]$Command, [string]$Name)

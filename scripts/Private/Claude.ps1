@@ -173,7 +173,7 @@ function Request-ClaudeQuit {
     [OutputType([bool])]
     param([Parameter(Mandatory)][int[]]$ProcessId)
 
-    # Compiled on first use: only a switch needs it, not the mod's every list.
+    # Compiled on first use: only a switch needs it, not every other command.
     if (-not ('ClaudeAccountSwitcher.EndSession' -as [type])) { Add-Type -TypeDefinition $script:EndSessionSource }
     $told = [ClaudeAccountSwitcher.EndSession]::Send($ProcessId)
     if ($told -lt 0) { Write-SwitcherLog (Get-SwitcherText ClaudeRefusedQuit) }

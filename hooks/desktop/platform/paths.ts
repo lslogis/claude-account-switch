@@ -1,16 +1,18 @@
 import type { EngineInterface } from 'claude-code'
 
-import { PLUGIN_ID } from './plugin'
-
 // Where things are on Windows. The data folder is reckoned as the script's
-// Get-DefaultDataDir reckons it; both sides are tested against
-// tests/fixtures/data-dirs.ts.
+// Get-DefaultDataDir reckons it; the two must agree.
+
+// The data folder's name: the name the stand-alone account-switcher mod used, kept
+// so the sign-ins it saved stay where they are (the state's namespace is the
+// plugin's own name, account-switch: platform/state.ts).
+const PLUGIN_ID = 'account-switcher'
 
 /** The variables the data folder is reckoned from. */
 export type PathEnv = { USERPROFILE?: string; CLAUDE_CONFIG_DIR?: string }
 
 /** `parts` joined into a Windows path, the separators at the joins left single. */
-export function joinPath(...parts: string[]) {
+function joinPath(...parts: string[]) {
   return parts.map((part, i) => (i < parts.length - 1 ? part.replace(/[\\/]+$/, '') : part)).join('\\')
 }
 

@@ -109,14 +109,10 @@ $script:Text = $SwitcherText
 
 # --- Functions --------------------------------------------------------------------
 
-# Every file of Private\ and Public\; the functions of Public\ are the module's.
-$public = foreach ($folder in 'Private', 'Public') {
+# Every file of Private\ and Public\; the functions of Public\ are the module's,
+# as the manifest's FunctionsToExport lists them (the module is imported by it).
+foreach ($folder in 'Private', 'Public') {
     foreach ($file in Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot $folder) -Filter '*.ps1' | Sort-Object Name) {
         . $file.FullName
-        if ($folder -eq 'Public') {
-            $ast = [Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$null, [ref]$null)
-            $ast.FindAll({ $args[0] -is [Management.Automation.Language.FunctionDefinitionAst] }, $false).Name
-        }
     }
 }
-Export-ModuleMember -Function $public

@@ -1,7 +1,7 @@
 import { isSameName } from './profiles'
 
-// What a profile's name may be, as Assert-ProfileName in the script has it (both
-// are tested against tests/fixtures/profile-names.ts): a folder name, up to 40
+// What a profile's name may be, as Assert-ProfileName in the script has it (the
+// two must agree): a folder name, up to 40
 // UTF-16 units, none of the characters Windows refuses there, no space or "-"
 // first (it would read as a parameter), no space or dot last, no device name.
 

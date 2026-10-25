@@ -108,8 +108,16 @@ function Invoke-AccountSwitcher {
                 } catch {
                     # A switch that failed before it was made leaves nothing of new
                     # behind; one that was made (Claude did not start again) keeps it.
-                    if ((Read-LastSwitchedProfile) -ne $Name) { Undo-ProfileAdd $Name }
-                    throw
+                    # The switch's failure is the one said, a failure to take it back logged.
+                    $failure = $_
+                    if ((Read-LastSwitchedProfile) -ne $Name) {
+                        try {
+                            Undo-ProfileAdd $Name
+                        } catch {
+                            Write-SwitcherLog (Get-SwitcherText ProfileAddNotUndone -Arguments $Name, $_.Exception.Message)
+                        }
+                    }
+                    throw $failure
                 }
             }
             'rename' { Rename-AccountProfile -Name $Name -NewName $Value }

@@ -1,25 +1,5 @@
-# Profiles: listing them and every change to them. Each function takes the
+# Profiles: every change to them. Each function takes the
 # switcher's lock and opens the data folder itself (Enter-SwitcherData).
-
-<#
-.SYNOPSIS
-    The saved profiles, each with its account, sharing and whether it holds a sign-in.
-.PARAMETER DataDir
-    The switcher's data folder; by default the one used last, else
-    <Claude config dir>\plugins\data\account-switcher.
-#>
-function Get-AccountProfile {
-    [CmdletBinding()]
-    [OutputType('AccountSwitcher.Profile')]
-    param([string]$DataDir)
-
-    Enter-SwitcherData -DataDir $DataDir
-    try {
-        Read-AccountProfile
-    } finally {
-        Exit-SwitcherData
-    }
-}
 
 <#
 .SYNOPSIS
@@ -147,7 +127,10 @@ function Remove-AccountProfile {
         if ($Name -eq $current) { throw (New-SwitcherError DeleteSignedIn InvalidOperation $Name) }
         if (-not $PSCmdlet.ShouldProcess($Name, (Get-SwitcherText ActionDelete))) { return }
         $account = (Read-ProfileRecord $Name).account
+        $isLastSwitchedTo = (Read-LastSwitchedProfile) -eq $Name
         Remove-Item -LiteralPath (Get-ProfileDir $Name) -Recurse -Force
+        # Kept, it would name a profile added under the same name later as the one just switched to.
+        if ($isLastSwitchedTo) { Write-LastSwitchedProfile $null }
         Write-SwitcherLog (Get-SwitcherText ProfileDeleted $Name)
         if ($account -and -not (Get-SavedAccount).ContainsKey($account)) {
             $backups = @(Remove-SignInBackup $account)

@@ -6,7 +6,7 @@ import { readDataFile } from './dataFiles'
 // How a switch handed to a run outside Claude goes, as that run says it in
 // switch.json, its shape documented in scripts/Private/SwitchRun.ps1: "starting"
 // as it is handed off, "running" once it runs, then "failed" with why, or
-// "done". Both sides are tested against tests/fixtures/switch-run-sample.ts.
+// "done".
 
 /** The file the run handed off writes in the data folder; the script's Get-SwitchRunPath. */
 export const SWITCH_RUN_FILE = 'switch.json'

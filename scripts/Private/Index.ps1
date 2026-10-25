@@ -2,7 +2,8 @@
 #
 # The mod draws the profiles on every redraw, too often to run this script each
 # time, so the script keeps what the mod needs in one file, written whole after
-# every change (Exit-SwitcherData) and never read by the script itself:
+# every change and on init (Enter-SwitcherData -Change, then Exit-SwitcherData)
+# and never read by the script itself:
 #
 #     {
 #       "version": 1,
@@ -12,7 +13,7 @@
 #     }
 #
 # hooks/desktop/services/readModel.ts reads it; a change to its shape bumps IndexVersion
-# there and here. Both sides are tested against tests/fixtures/index-sample.ts.
+# there and here.
 
 function Write-SwitcherIndex {
     [CmdletBinding()]

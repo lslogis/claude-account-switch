@@ -14,7 +14,7 @@ import {
   switchTo,
   sync,
 } from './cli/account'
-import { isDesktopOnWindows } from './desktop/platform/env'
+import { isDesktop, isDesktopOnWindows } from './desktop/platform/env'
 import { bestEffort } from './desktop/platform/log'
 import { applyMeasure } from './desktop/services/meter'
 import { pollLimits } from './desktop/services/poll'
@@ -36,18 +36,6 @@ import { scheduleTick } from './desktop/ui/tick'
 //
 // Desktop hands its session the login itself, so nothing of hooks/cli runs there, and nothing of
 // hooks/desktop runs in a terminal. This file only wires the hooks: each one asks where it runs.
-
-let desktop: Promise<boolean> | null = null
-function isDesktop($: EngineInterface) {
-  desktop ??= $.env.get('CLAUDE_CODE_ENTRYPOINT').then(
-    entrypoint => entrypoint === 'claude-desktop',
-    () => {
-      desktop = null // not known: asked again next time
-      return false
-    },
-  )
-  return desktop
-}
 
 /** The desktop account part's start: the data folder first, then the tick, the poll and the upkeep. */
 async function startDesktopAccounts($: EngineInterface) {
@@ -78,18 +66,18 @@ export const register: Register = (on, options) => {
     }
     if (await isDesktopOnWindows($)) await startDesktopAccounts($)
     const started = await next(e)
-    await refresh($)
+    void refresh($)
     $.clock.every(REFRESH_MS, () => void refresh($))
     return started
   })
 
   on('session.attach', { surface: 'desktop' }, async ($, e, next) => {
     const attached = await next(e)
-    await refresh($)
+    void refresh($)
     return attached
   })
 
-  // Terminal: follow token refreshes and an outside /login on every message (two file reads when nothing changed)
+  // Terminal: follow token refreshes and an outside /login on every message (the store and the live login read, when nothing changed)
   on('prompt.submit', async ($, e, next) => {
     if (!(await isDesktop($))) {
       void sync($, true)
@@ -102,7 +90,8 @@ export const register: Register = (on, options) => {
   // Terminal: /login typed by hand or started from /account saves the account before it and registers the one after
   on('command.run', { command: 'login' }, async ($, e, next) => {
     if (await isDesktop($)) return next(e)
-    const before = await sync($).catch(() => undefined)
+    // Quiet: a live token the server did not answer for just now is not asked about again before /login
+    const before = await sync($, true).catch(() => undefined)
     const result = await next(e)
     try {
       const { book, current } = await sync($)
@@ -168,8 +157,10 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.surface !== 'desktop' || e.props.hasSurvey) return next(e)
     const withAccounts = await isDesktopOnWindows($)
-    const status = await drawStatus($, e, { cacheTtlMs, withMeters: !withAccounts })
-    const accounts = withAccounts ? await drawBand($, e) : null
+    const [status, accounts] = await Promise.all([
+      drawStatus($, e, { cacheTtlMs, withMeters: !withAccounts }),
+      withAccounts ? drawBand($, e) : null,
+    ])
     if (!status && !accounts) return next(e)
     const { Box } = $.ui.resolve(e)
     return (
@@ -180,8 +171,8 @@ export const register: Register = (on, options) => {
     )
   })
 
-  // Desktop: when Claude has answered, its cost is in the limits (poll now, then every five
-  // minutes); the status part keeps the turn's figures. A subagent's turn ends inside the main one.
+  // Desktop: when Claude has answered, its cost is in the limits (polled now, unless a session
+  // polled within the last two minutes); the status part keeps the turn's figures. A subagent's turn ends inside the main one.
   on('turn.complete', async ($, e, next) => {
     if (!(await isDesktop($))) return next(e)
     if (e.agentId === undefined && (await isDesktopOnWindows($))) void pollLimits($, true)
@@ -193,9 +184,9 @@ export const register: Register = (on, options) => {
   // Desktop: pushed after each turn and whenever a limit window moves; both parts redraw from it.
   on('session.measure', async ($, e, next) => {
     if (!(await isDesktop($))) return next(e)
-    if (await isDesktopOnWindows($)) await applyMeasure($, e.context, e.rateLimits)
+    if (await isDesktopOnWindows($)) await applyMeasure($, e)
     const measured = await next(e)
-    await refresh($)
+    void refresh($)
     return measured
   })
 

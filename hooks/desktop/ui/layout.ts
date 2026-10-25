@@ -157,7 +157,7 @@ function figureColumns(figure: FigureText, layout: Layout) {
 }
 
 /** Columns the whole line takes in `layout`: the figures, the gap, the picker showing `picker`. */
-export function lineColumns(figures: FigureText[], picker: string, layout: Layout) {
+function lineColumns(figures: FigureText[], picker: string, layout: Layout) {
   // The context first, then as many limits as the layout keeps.
   const shown = figures.slice(0, 1 + layout.limitCount)
   const gap = layout.isWide ? SIZES.gap.lg : SIZES.gap.md

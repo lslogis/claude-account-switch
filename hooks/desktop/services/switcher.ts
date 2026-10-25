@@ -19,8 +19,8 @@ const SCRIPT = 'scripts/switch.ps1'
 export const SCRIPT_TIMEOUT_MS = 60_000
 
 /**
- * How a run of the script ended, as switch.ps1 documents its exit codes (both
- * sides are tested against tests/fixtures/exit-codes.ts), and `NotRun` when it
+ * How a run of the script ended, as switch.ps1 documents its exit codes (the
+ * two must agree), and `NotRun` when it
  * could not be started or did not end in time.
  */
 export const ScriptExit = {
@@ -37,7 +37,7 @@ export const ScriptExit = {
 /** A run handed to a process of its own: the id it says how it goes under, in switch.json. */
 export type HandOff = { runId: string }
 
-/** The commands switch.ps1 takes (Invoke-AccountSwitcher's -Command); tested against tests/fixtures/script-commands.ts. */
+/** The commands switch.ps1 takes (Invoke-AccountSwitcher's -Command). */
 export const SCRIPT_COMMANDS = ['list', 'init', 'start', 'save', 'switch', 'add', 'new', 'rename', 'delete', 'share'] as const
 
 export type ScriptCommand = (typeof SCRIPT_COMMANDS)[number]

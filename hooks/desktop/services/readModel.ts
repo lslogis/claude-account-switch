@@ -9,8 +9,7 @@ import { readDataFile } from './dataFiles'
 
 // The saved profiles, as the script's read model has them (index.json, its
 // shape documented in scripts/Private/Index.ps1): the script writes it whole
-// after every change, and the mod asks the script for every change. Both sides
-// are tested against tests/fixtures/index-sample.ts. Every drawing reads it, so
+// after every change, and the mod asks the script for every change. Every drawing reads it, so
 // it is parsed again only once the script has written it anew.
 
 /** The read model's file in the data folder; the script's Paths.Index. */

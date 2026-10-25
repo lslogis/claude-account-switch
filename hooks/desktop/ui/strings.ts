@@ -67,7 +67,6 @@ const EN_US = {
     'Claude did not close within {count} minutes; switcher.log in the switcher’s data folder says how the switch went.',
   // While a command the person gave runs, in place of what would start another.
   'busy.switch': 'Switching to {name}…',
-  'busy.new': 'Adding {name} and switching to it…',
   'busy.delete': 'Deleting {name}…',
   'busy.rename': 'Renaming {name}…',
   'busy.add': 'Adding {name}…',

@@ -29,7 +29,7 @@ export function isSameName(one: string, other: string) {
 
 /**
  * The profile of the signed-in account, as Resolve-CurrentProfile in the script
- * finds it (both are tested against tests/fixtures/current-profile.ts): the
+ * finds it (the two must agree): the
  * profile that holds `account`; else the profile last switched to while it holds
  * no account yet, named in any case, as folders are. Where the environment
  * doesn't name the account (an older Claude), the profile last switched to.

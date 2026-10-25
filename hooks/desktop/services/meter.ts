@@ -1,4 +1,4 @@
-import type { EngineInterface, SessionContextUsage, SessionRateLimit } from 'claude-code'
+import type { EngineInterface, SessionContextUsage, SessionRateLimit, UsageUnit } from 'claude-code'
 
 import type { Limit, Meter } from '../../../types'
 import { contextThresholds } from '../domain/context'
@@ -18,7 +18,7 @@ function toLimits(limits: SessionRateLimit[]): Limit[] {
   return limits.map(({ kind, percentUsed, resetsAt }) => ({ kind, percentUsed, resetsAt }))
 }
 
-export function toMeter(context: SessionContextUsage, limits: SessionRateLimit[]): Meter {
+function toMeter(context: SessionContextUsage, limits: SessionRateLimit[]): Meter {
   return {
     contextPercent: context.percent ?? null,
     contextTokens: context.tokens ?? null,
@@ -65,20 +65,21 @@ export async function meterOrStatus($: EngineInterface): Promise<Meter> {
 /**
  * Where limits come from: `answered`, the kinds the source lists whenever they
  * exist (see mergeLimits; a reply's headers answer for none); `measuredAt`,
- * when the source measured them, now when not given.
+ * when the source measured them, now when not given; `isAnswer`, the source
+ * answered for the account even with no limits (see rememberLimits).
  */
-export type LimitsSource = { answered?: readonly string[]; measuredAt?: number }
+export type LimitsSource = { answered?: readonly string[]; measuredAt?: number; isAnswer?: boolean }
 
 /**
  * Merges a source's limits into the meter and remembers the result for the
  * signed-in account. The same figures again change nothing, so nothing redraws.
  */
-export async function applyLimits($: EngineInterface, limits: Limit[], { answered = [], measuredAt }: LimitsSource = {}) {
+export async function applyLimits($: EngineInterface, limits: Limit[], { answered = [], measuredAt, isAnswer }: LimitsSource = {}) {
   const now = await $.clock.now()
   const known = (await readMeter($)) ?? (await startMeter($))
   const merge = (meter: Meter) => mergeLimits(meter.limits, limits, now, answered)
   if (JSON.stringify(merge(known)) === JSON.stringify(known.limits)) {
-    await rememberLimits($, known.limits, { measuredAt })
+    await rememberLimits($, known.limits, { measuredAt, isAnswer })
     return
   }
   const after = await updateMeter($, current => {
@@ -86,20 +87,26 @@ export async function applyLimits($: EngineInterface, limits: Limit[], { answere
 
     return { ...meter, limits: merge(meter) }
   })
-  await rememberLimits($, after?.limits ?? [], { measuredAt })
+  await rememberLimits($, after?.limits ?? [], { measuredAt, isAnswer })
 }
 
 /**
- * What a reply measured: its context, counted again with its breakdown (no
- * requests) for the real auto-compaction threshold, replaces the meter's; its
- * limits merge with the meter's.
+ * What a reply measured, of what `changed`: its context, counted again with its
+ * breakdown (no requests) for the real auto-compaction threshold, replaces the
+ * meter's (the first measure always); its limits merge with the meter's. A
+ * measure where only the cost moved does nothing here.
  */
-export async function applyMeasure($: EngineInterface, context: SessionContextUsage, rateLimits: SessionRateLimit[]) {
-  const detailed = await bestEffort($, 'context breakdown', $.session.usage({ breakdown: 'summary' }))
-  const measured = toMeter(detailed?.context ?? context, [])
+export async function applyMeasure(
+  $: EngineInterface,
+  { context, rateLimits, changed }: { context: SessionContextUsage; rateLimits: SessionRateLimit[]; changed: readonly UsageUnit[] },
+) {
   const start = (await readMeter($)) ? null : await startMeter($)
-  await updateMeter($, current => ({ ...measured, limits: current?.limits ?? start?.limits ?? [] }))
-  if (rateLimits.length) {
+  if (start || changed.includes('context')) {
+    const detailed = await bestEffort($, 'context breakdown', $.session.usage({ breakdown: 'summary' }))
+    const measured = toMeter(detailed?.context ?? context, [])
+    await updateMeter($, current => ({ ...measured, limits: current?.limits ?? start?.limits ?? [] }))
+  }
+  if (changed.includes('rateLimits') && rateLimits.length) {
     await applyLimits($, toLimits(rateLimits))
   }
 }

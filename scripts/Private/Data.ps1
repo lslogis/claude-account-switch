@@ -10,7 +10,7 @@
     Claude Desktop is an MSIX app, and Windows redirects AppData writes made from
     inside its container (the mod's runs) to a private copy that a run outside it
     (a detached switch) never sees. The mod reckons it the same way
-    (hooks/desktop/platform/paths.ts), tested against tests/fixtures/data-dirs.ts.
+    (hooks/desktop/platform/paths.ts); the two must agree.
 #>
 function Get-DefaultDataDir {
     [CmdletBinding()]
@@ -54,8 +54,10 @@ function Initialize-SwitcherData {
 .PARAMETER DataDir
     The data folder; by default the one opened last, else Get-DefaultDataDir.
 .PARAMETER Change
-    The caller changes the data: the read model (index.json) is written anew
-    when the outermost caller lets go, whether or not the change succeeded.
+    The caller changes the data, or wants the read model written (init): the
+    read model (index.json) is written anew when the outermost caller lets go,
+    whether or not the change succeeded. Without it, index.json is left as it
+    is (list, the caller of a detached run).
 #>
 function Enter-SwitcherData {
     [CmdletBinding()]
@@ -68,10 +70,7 @@ function Enter-SwitcherData {
     $script:LockDepth++
     try {
         $root = if ($DataDir) { $DataDir.TrimEnd('\', '/') } elseif ($script:Paths) { $script:Paths.Root } else { Get-DefaultDataDir }
-        if (-not $script:Paths -or $script:Paths.Root -ne $root) {
-            Initialize-SwitcherData -DataDir $root
-            $script:IsIndexStale = $true
-        }
+        if (-not $script:Paths -or $script:Paths.Root -ne $root) { Initialize-SwitcherData -DataDir $root }
     } catch {
         # A folder that could not be opened (a later version's, say) is not
         # taken as open: the next call opens it anew, and refuses it again.

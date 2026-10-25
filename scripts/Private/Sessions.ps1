@@ -29,15 +29,15 @@ function Get-SavedAccount {
     return $accounts
 }
 
-# The folder that holds an account's session cards (it may not exist yet); null when it can't be told.
+# The folder that holds an account's session cards (it may not exist yet); null
+# when it can't be told. $Seen: what was seen of the accounts (Read-SeenAccount).
 function Get-SessionDir {
     [CmdletBinding()]
-    param([string]$ClaudeDir, [string]$Account)
+    param([string]$ClaudeDir, [string]$Account, [hashtable]$Seen)
 
     $accountDir = Join-Path $ClaudeDir "claude-code-sessions\$Account"
     # The organization the mod saw the account run Code sessions in.
-    $seen = Read-SeenAccount
-    if ($seen.ContainsKey($Account) -and $seen[$Account].org) { return Join-Path $accountDir $seen[$Account].org }
+    if ($Seen.ContainsKey($Account) -and $Seen[$Account].org) { return Join-Path $accountDir $Seen[$Account].org }
     if (-not (Test-Path -LiteralPath $accountDir)) { return $null }
     # Else the folder its newest card was written to, or its only folder.
     $newest = $null
@@ -145,9 +145,10 @@ function Find-SharingList {
     param([string]$ClaudeDir, [hashtable]$Accounts, [hashtable]$Last)
 
     $lists = @{}
+    $seen = Read-SeenAccount
     foreach ($account in @($Accounts.Keys)) {
         if (-not $Accounts[$account]) { continue }
-        $dir = Get-SessionDir $ClaudeDir $account
+        $dir = Get-SessionDir $ClaudeDir $account $seen
         if (-not $dir -and $Last.ContainsKey($account)) { $dir = $Last[$account].Dir }
         if ($dir) { $lists[$account] = $dir }
         else { Write-SwitcherLog (Get-SwitcherText SessionListMissing $account) }

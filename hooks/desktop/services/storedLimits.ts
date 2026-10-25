@@ -20,7 +20,7 @@ function asSpend(value: unknown): Spend | null {
 }
 
 /** `value` when it is a limit as the mod keeps it (in its store, say). */
-export function asLimit(value: unknown): Limit | null {
+function asLimit(value: unknown): Limit | null {
   if (!isRecord(value) || typeof value.kind !== 'string') {
     return null
   }

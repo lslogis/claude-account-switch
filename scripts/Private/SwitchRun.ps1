@@ -13,8 +13,7 @@
 # writes "running" as soon as it runs, before it waits for the lock, then
 # "failed" with its error or "done". A run that never writes "running" never
 # started. hooks/desktop/services/switchRun.ts reads it; a change to its shape bumps
-# SwitchRunVersion there and here. Both sides are tested against
-# tests/fixtures/switch-run-sample.ts.
+# SwitchRunVersion there and here.
 
 function Get-SwitchRunPath {
     [CmdletBinding()]

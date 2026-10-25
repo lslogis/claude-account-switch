@@ -153,9 +153,10 @@ function renderFigures($: EngineInterface, ui: Desktop, model: FiguresModel) {
 async function drawFigures($: EngineInterface, e: BandInput, list: Profile[], current: Profile | null) {
   const model = await loadFigures($, e, list, current, picksKept)
 
-  // Everything the line shows; its countdowns and hints read to the minute, so a
-  // new minute is a new model. A redraw with nothing new answers the same tree.
-  return keepTree(siteOf(e, 'figures', e.props.bodyColumns), JSON.stringify(model), () => renderFigures($, $.ui.resolve(e), model))
+  // Everything the line shows, its fit to the width included; its countdowns and
+  // hints read to the minute, so a new minute is a new model. A redraw with
+  // nothing new answers the same tree, at any width.
+  return keepTree(siteOf(e, 'figures'), JSON.stringify(model), () => renderFigures($, $.ui.resolve(e), model))
 }
 
 /** Folds the list unfolded in the band back into the figures line. */

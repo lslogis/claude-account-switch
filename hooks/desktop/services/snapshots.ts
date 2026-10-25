@@ -53,5 +53,10 @@ export async function rememberLimits($: EngineInterface, limits: Limit[], { isAn
       now,
     ),
   )
-  await $.store.set(snapshotKey(account), { limits: merged, at: Math.max(measuredAt ?? now, last?.at ?? 0) })
+  const at = Math.max(measuredAt ?? now, last?.at ?? 0)
+  // The same figures again leave the store, which every session shares, unwritten.
+  if (at === last?.at && JSON.stringify(merged) === JSON.stringify(last.limits)) {
+    return
+  }
+  await $.store.set(snapshotKey(account), { limits: merged, at })
 }

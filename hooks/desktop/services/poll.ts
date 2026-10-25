@@ -8,7 +8,6 @@ import { bestEffort, logFailure } from '../platform/log'
 import { fetchLimits } from './api'
 import type { FetchFailure } from './api'
 import { applyLimits } from './meter'
-import { rememberLimits } from './snapshots'
 import { POLL_KEY } from './storeKeys'
 import { asLimits } from './storedLimits'
 
@@ -164,8 +163,7 @@ async function refreshLimits($: EngineInterface, isTurnEnd: boolean): Promise<nu
     if (fetched?.limits?.length === 0) {
       const quietAt = now + NO_WINDOW_POLL_MS
       await $.store.set(POLL_KEY, { ...answered, limits: [], nextAt: quietAt })
-      await applyLimits($, [], { answered: POLLED_KINDS })
-      await rememberLimits($, [], { isAnswer: true })
+      await applyLimits($, [], { answered: POLLED_KINDS, isAnswer: true })
       return quietAt
     }
     if (fetched?.limits) {

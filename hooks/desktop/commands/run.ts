@@ -48,10 +48,12 @@ export type CommandOutcome =
  */
 export type HandOffEnd = { kind: 'failed'; message: string | null } | { kind: 'notStarted' } | { kind: 'done' } | { kind: 'timedOut' }
 
-/** Ends the wait of run `id`; a wait another run holds meanwhile stays. */
+/** Ends the wait of run `id`, and the band's question it answers; a wait another run holds meanwhile stays. */
 async function endBusy($: EngineInterface, id: string) {
-  await updateBusy($, current => (current?.id === id ? null : current))
-  $.ui.invalidate('ui.render')
+  const ended = await updateBusy($, current => (current?.id === id ? null : current))
+  if (ended === null) {
+    await updateMode($, current => (current.kind === 'confirm' ? MODE_IDLE : current))
+  }
 }
 
 /**
@@ -95,6 +97,8 @@ async function awaitHandOff($: EngineInterface, id: string, onEnd: (end: HandOff
   const handedAt = await $.clock.now()
   const until = handedAt + DETACHED_BUSY_MS + DETACHED_WATCH_MS
   await updateBusy($, current => (current?.id === id ? { ...current, until } : current))
+  // Should the watch fail, the wait still ends on screen at its deadline.
+  $.clock.after(until - handedAt, () => $.ui.invalidate('ui.render'))
   watchHandOff($, id, handedAt, onEnd)
 }
 
@@ -119,7 +123,7 @@ function outcomeOf(result: SwitcherResult): CommandOutcome {
 /**
  * Runs `command` on `operands`, each checked first, the band and the list back
  * to idle (a list unfolded in the band stays open across its own renames and
- * deletes), and keeps what the mod holds in step once it succeeded: a deleted
+ * deletes; the band's switch question stays, saying what runs, until it ends), and keeps what the mod holds in step once it succeeded: a deleted
  * profile's account takes its last limits along. Only one command runs at a
  * time: the run that took the wait (Busy, under its own id) runs, any other
  * reads `running`. A command handed off goes on after it resolves:
@@ -148,7 +152,8 @@ export async function runProfileCommand(
   // Set once the script said it handed the run off.
   let isHandedOff = false
   try {
-    await updateMode($, current => (current.kind === 'manage' ? current : MODE_IDLE))
+    // The band's question stays, saying what runs, until the run ends (endBusy).
+    await updateMode($, current => (current.kind === 'manage' || current.kind === 'confirm' ? current : MODE_IDLE))
     await updatePanel($, () => PANEL_IDLE)
     const result = await runSwitcher($, { command, operands, ...(isDetached ? { handOff: { runId: id } } : {}) })
     if (result.isOk && command === 'delete') {

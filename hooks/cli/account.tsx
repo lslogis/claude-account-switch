@@ -29,12 +29,20 @@ const RETRY_AFTER = 5 * 60_000
 // A failure meant for the person: its message is shown as is.
 class Refusal extends Error {}
 
-async function configDir($: EngineInterface): Promise<string> {
-  const dir = await $.env.get('CLAUDE_CONFIG_DIR')
-  if (dir) return dir.replace(/[\\/]+$/, '')
-  const home = (await $.env.get('USERPROFILE')) ?? (await $.env.get('HOME'))
-  if (!home) throw new Refusal('Could not find the home folder (USERPROFILE / HOME is empty)')
-  return home.replace(/[\\/]+$/, '') + '/.claude'
+// The environment does not change in a session: the folder is reckoned once, a failure again next time
+let dirCache: Promise<string> | undefined
+function configDir($: EngineInterface): Promise<string> {
+  dirCache ??= (async () => {
+    const dir = await $.env.get('CLAUDE_CONFIG_DIR')
+    if (dir) return dir.replace(/[\\/]+$/, '')
+    const home = (await $.env.get('USERPROFILE')) ?? (await $.env.get('HOME'))
+    if (!home) throw new Refusal('Could not find the home folder (USERPROFILE / HOME is empty)')
+    return home.replace(/[\\/]+$/, '') + '/.claude'
+  })().catch(err => {
+    dirCache = undefined
+    throw err
+  })
+  return dirCache
 }
 
 async function credPath($: EngineInterface) {
@@ -239,18 +247,19 @@ async function syncNow(
   isQuiet = false,
 ): Promise<{ book: Book; current?: string; isSettled: boolean }> {
   const book = await loadBook($)
-  const { oauth: live } = await readLive($)
-  if (!live) {
-    book.current = undefined
-    return { book, isSettled: true }
+  const stored = book.current
+  // The panes read the account in use from the store: one that changed (a /logout, a login elsewhere) is saved
+  const settle = async (current?: string) => {
+    book.current = current
+    if (current !== stored) await saveBook($, book)
+    return { book, current, isSettled: true }
   }
+  const { oauth: live } = await readLive($)
+  if (!live) return settle(undefined)
 
   const all = Object.values(book.accounts)
   const same = all.find(a => a.oauth.accessToken === live.accessToken)
-  if (same) {
-    book.current = same.email
-    return { book, current: same.email, isSettled: true }
-  }
+  if (same) return settle(same.email)
 
   // The same refresh token is surely a refresh of the same account; otherwise ask the server.
   let who: Who | undefined
@@ -281,7 +290,7 @@ async function syncNow(
   return { book, current: who.email, isSettled: true }
 }
 
-// Reads and writes of the two files run one at a time
+// Syncs, switches and removals run one at a time (the panes and /account check only read, outside the queue)
 let queue: Promise<unknown> = Promise.resolve()
 function serial<T>(job: () => Promise<T>): Promise<T> {
   const run = queue.then(job, job)
@@ -376,7 +385,7 @@ async function removeAccount($: EngineInterface, email: string): Promise<string>
 }
 
 function startLogin($: EngineInterface) {
-  // /login runs once the session is idle: hand it off without waiting. The login hook below saves the account.
+  // /login runs once the session is idle: hand it off without waiting. The login hook (register.tsx) saves the account.
   void $.command.run({ command: 'login' }).catch(err => $.ui.toast(`Could not start login: ${messageOf(err)}`))
 }
 

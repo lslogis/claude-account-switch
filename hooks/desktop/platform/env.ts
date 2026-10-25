@@ -5,11 +5,26 @@ import { logFailure } from './log'
 
 // What the session's environment says: where the mod runs, and for whom.
 
-// The switcher swaps Claude Desktop's sign-in, on Windows. Anywhere else (Claude
-// Code in a terminal, which signs in on its own; macOS) the mod stays out of the
-// way. The answer is kept once the environment gave it; an environment that
-// could not be read answers "no" this time and is asked again the next.
+// Where the mod runs: Claude Desktop, or Claude Code in a terminal; the switcher
+// swaps Claude Desktop's sign-in on Windows only. Each answer is kept once the
+// environment gave it; an environment that could not be read answers "no" this
+// time and is asked again the next.
+let isOnDesktop: Promise<boolean> | null = null
 let isDesktopWindows: Promise<boolean> | null = null
+
+export function isDesktop($: EngineInterface) {
+  isOnDesktop ??= $.env.get('CLAUDE_CODE_ENTRYPOINT').then(
+    entrypoint => entrypoint === 'claude-desktop',
+    (error: unknown) => {
+      isOnDesktop = null
+      logFailure($, 'reading where the mod runs', error)
+
+      return false
+    },
+  )
+
+  return isOnDesktop
+}
 
 export function isDesktopOnWindows($: EngineInterface) {
   isDesktopWindows ??= Promise.all([$.env.get('CLAUDE_CODE_ENTRYPOINT'), $.env.get('OS')]).then(

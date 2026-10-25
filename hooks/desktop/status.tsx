@@ -1,7 +1,9 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, ModelUsage, ProcessRunResult, RenderInput } from 'claude-code'
 
-import type { StatusLimit, Snapshot, WorkflowRun } from '../../types'
+import type { StatusLimit, StatusSnapshot, WorkflowRun } from '../../types'
+import { isDesktopOnWindows } from './platform/env'
+import { limitLabel, tokens, untilReset } from './ui/format'
 
 // The status part of the desktop band: folder and git, the session's age, prompts and cost, the
 // last turn, idle time against the prompt cache, compactions, agents and workflow runs, and a
@@ -33,7 +35,6 @@ const ACTIVE = ['pending', 'running', 'waiting']
 
 export const REFRESH_MS = 60_000
 const WARN_AT = [95, 80]
-const LABELS: Record<string, string> = { five_hour: '5-hour', seven_day: 'Weekly' }
 const LABEL_CELLS = 8
 const PERCENT_CELLS = 5
 const DETAIL_GAP = 2
@@ -49,10 +50,7 @@ const SPARE = 0.95
 const MIN_BAR_PX = 60
 const MAX_BAR_PX = 180
 
-const label = (kind: string) => LABELS[kind] ?? kind.replace(/_/g, ' ')
 const tone = (percent: number) => (percent >= 95 ? 'error' : percent >= 80 ? 'warning' : undefined)
-const tokens = (n: number) =>
-  n >= 1_000_000 ? `${+(n / 1_000_000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : `${n}`
 
 // Drawn as an image, so it cannot follow the theme: a translucent track reads on light and dark.
 const bar = (percent: number, width: number) => {
@@ -63,13 +61,6 @@ const bar = (percent: number, width: number) => {
     `<rect width="${width}" height="8" rx="4" fill="#808080" fill-opacity="0.3"/>` +
     `<rect width="${filled}" height="8" rx="4" fill="${fill}"/></svg>`
   )
-}
-
-const until = (iso: string, now: number) => {
-  const minutes = Math.max(0, Math.round((Date.parse(iso) - now) / 60_000))
-  if (minutes < 60) return `${minutes}m`
-  if (minutes < 1440) return `${Math.floor(minutes / 60)}h ${minutes % 60}m`
-  return `${Math.floor(minutes / 1440)}d ${Math.floor((minutes % 1440) / 60)}h`
 }
 
 const elapsed = (ms: number) => {
@@ -116,8 +107,8 @@ async function warn($: EngineInterface, limits: StatusLimit[], now: number) {
     if (threshold === undefined || seen.includes(key)) continue
 
     fresh.push(key)
-    const resets = limit.resetsAt ? ` · resets in ${until(limit.resetsAt, now)}` : ''
-    const text = `${label(limit.kind)} usage limit at ${limit.percent}%${resets}`
+    const left = untilReset(limit.resetsAt ?? undefined, now)
+    const text = `${limitLabel(limit.kind)} usage limit at ${limit.percent}%${left ? ` · resets in ${left}` : ''}`
     // A system notification where the person's channel delivers one; the toast otherwise.
     if (!(await $.ui.notify(text, { title: 'Usage limit' })).isSent) $.ui.toast(text, { timeoutMs: 8000 })
   }
@@ -125,21 +116,38 @@ async function warn($: EngineInterface, limits: StatusLimit[], now: number) {
   if (fresh.length > 0) await update($, warned, s => [...s, ...fresh].slice(-50))
 }
 
+// One refresh at a time: one asked for while another runs runs once after it (the turn's end,
+// its measure, the timers and an Agent call all ask), so two never read and write over each other.
+let running: Promise<void> | null = null
+let isQueued = false
+
 /** Takes a new snapshot. Never throws: a failed refresh keeps the last snapshot, and the next one tries again. */
-export async function refresh($: EngineInterface) {
-  try {
-    await takeSnapshot($)
-  } catch {
-    // the band keeps what it showed
+export function refresh($: EngineInterface): Promise<void> {
+  if (running) {
+    isQueued = true
+    return running
   }
+  running = (async () => {
+    do {
+      isQueued = false
+      try {
+        await takeSnapshot($)
+      } catch {
+        // the band keeps what it showed
+      }
+    } while (isQueued)
+    running = null
+  })()
+  return running
 }
 
 async function takeSnapshot($: EngineInterface) {
   if (!(await isOnDesktop($))) return
 
   const [usage, cwd, now, agents, prompts, tracked] = await Promise.all([
-    // A local estimate (no API calls), asked for only its compaction window.
-    $.session.usage({ breakdown: 'summary' }),
+    // A local estimate (no API calls), its breakdown asked for only its compaction window, which
+    // only the context meter needs: on Windows the account part draws that meter instead.
+    $.session.usage((await isDesktopOnWindows($)) ? {} : { breakdown: 'summary' }),
     $.session.cwd(),
     $.clock.now(),
     $.agent.list(),
@@ -155,8 +163,10 @@ async function takeSnapshot($: EngineInterface) {
     runs.push({ runId, total: active + run.done + run.failed, active, done: run.done, failed: run.failed })
   }
   const [status, dirs] = await Promise.all([
-    output($.process.run(['git', 'status', '--porcelain=v2', '--branch'], { cwd, timeoutMs: 5000 })),
-    output($.process.run(['git', 'rev-parse', '--git-dir', '--git-common-dir'], { cwd, timeoutMs: 5000 })),
+    // No optional locks: the status never holds index.lock against a git command Claude runs meanwhile.
+    output($.process.run(['git', '--no-optional-locks', 'status', '--porcelain=v2', '--branch'], { cwd, timeoutMs: 5000 })),
+    // Both absolute, so they differ in a worktree only, not in a subfolder of a repository.
+    output($.process.run(['git', 'rev-parse', '--path-format=absolute', '--git-dir', '--git-common-dir'], { cwd, timeoutMs: 5000 })),
   ])
 
   const lines = status?.split('\n') ?? []
@@ -173,7 +183,7 @@ async function takeSnapshot($: EngineInterface) {
   const { tokens: contextTokens, window: modelWindow, breakdown } = usage.context
   const contextWindow = breakdown?.isAutoCompactEnabled ? Math.min(modelWindow, breakdown.rawMaxTokens) : modelWindow
 
-  const snap: Snapshot = {
+  const snap: StatusSnapshot = {
     at: now,
     startedAt: usage.startedAt,
     prompts,
@@ -231,7 +241,7 @@ export async function recordTurn(
       })
     }
   }
-  await refresh($)
+  void refresh($)
 }
 
 /** A step of the main loop finished: count the server tools it used. */
@@ -281,7 +291,7 @@ export async function drawStatus(
   e: RenderInput<'AbovePrompt', 'desktop'>,
   { cacheTtlMs, withMeters }: { cacheTtlMs: number; withMeters: boolean },
 ) {
-  const snap = await read($, snapshot)
+  const [snap, turn, c] = await Promise.all([read($, snapshot), read($, lastTurn), read($, compactions)])
   if (snap === null) return null
 
   const { Box, Svg, Text } = $.ui.resolve(e)
@@ -313,7 +323,10 @@ export async function drawStatus(
   const fixedPx = (LABEL_CELLS + PERCENT_CELLS + DETAIL_GAP) * CELL_PX
   const n = Math.max(1, snap.limits.length)
   const fit = (isLong: boolean) => {
-    const details = snap.limits.map(l => (l.resetsAt ? `${isLong ? 'resets in ' : '↻ '}${until(l.resetsAt, snap.at)}` : ''))
+    const details = snap.limits.map(l => {
+      const left = untilReset(l.resetsAt ?? undefined, snap.at)
+      return left ? `${isLong ? 'resets in ' : '↻ '}${left}` : ''
+    })
     const textPx = details.reduce((sum, d) => sum + d.length * CHAR_PX, 0)
     const barPx = Math.floor((availPx - n * fixedPx - (n - 1) * METER_GAP * CELL_PX - textPx) / n)
     return { details, barPx: Math.min(MAX_BAR_PX, barPx) }
@@ -340,7 +353,6 @@ export async function drawStatus(
 
   // Bottom line parts: dim unless they need attention (warning) or are live (agents).
   const activity: { text: string; emphasis?: 'warning' | 'live' }[] = []
-  const turn = await read($, lastTurn)
   if (turn !== null && turn.at >= snap.startedAt) {
     const idleMs = Math.max(0, snap.at - turn.at)
     const isCold = idleMs >= cacheTtlMs
@@ -355,7 +367,6 @@ export async function drawStatus(
       activity.push({ text: `idle ${ago(idleMs)}${isCold ? ' (cache cold)' : ''}`, emphasis: isCold ? 'warning' : undefined })
     }
   }
-  const c = await read($, compactions)
   if (c !== null && c.since === snap.startedAt) {
     const sizes = c.before === null || c.after === null ? '' : ` (last ${tokens(c.before)} → ${tokens(c.after)})`
     activity.push({ text: `compacted ${c.count}×${sizes}` })
@@ -376,7 +387,7 @@ export async function drawStatus(
       {withMeters && meter('Context', snap.contextPercent, used, contextBar)}
       {withMeters && snap.limits.length > 0 && (
         <Box flexDirection={isStacked ? 'column' : 'row'} columnGap={METER_GAP}>
-          {snap.limits.map((l, i) => meter(label(l.kind), l.percent, details[i] ?? '', limitBar))}
+          {snap.limits.map((l, i) => meter(limitLabel(l.kind), l.percent, details[i] ?? '', limitBar))}
         </Box>
       )}
       {activity.length > 0 && (

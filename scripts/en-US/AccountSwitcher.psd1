@@ -42,6 +42,7 @@
     AccountBound           = '''{0}'' holds the account signed in now; its sign-in is saved on the next switch.'
     ProfileAdded           = 'Added ''{0}''; it signs in on its first switch.'
     ProfileAddUndone       = 'Removed ''{0}'' again, as the switch to it failed.'
+    ProfileAddNotUndone    = '''{0}'' was not removed again after the switch to it failed: {1}'
     ProfileRenamed         = 'Renamed ''{0}'' to ''{1}''.'
     DeleteSignedIn         = '''{0}'' is signed in now; switch to another profile first.'
     ProfileDeleted         = 'Deleted profile ''{0}''.'

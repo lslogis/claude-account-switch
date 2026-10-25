@@ -1,8 +1,7 @@
 import type { EngineInterface } from 'claude-code'
 
-import { keepOnly } from '../platform/store'
-
-// Every key the mod keeps in its store (platform/store.ts), declared here beside
+// Every key the mod keeps in its store (one JSON file every session on the
+// machine reads and writes), declared here beside
 // the rule that prunes the others. Each key names the version of its value's
 // shape ("poll@1"): a value an older version of the mod kept under another key
 // is never read as one of today's, and pruneStore drops it. A change to a
@@ -25,6 +24,11 @@ export function snapshotKey(account: string) {
  * Drops every key that is not one of today's: the snapshots of accounts not in
  * `accounts`, and whatever earlier versions kept.
  */
-export function pruneStore($: EngineInterface, accounts: readonly string[]) {
-  return keepOnly($, new Set([...FIXED_KEYS, ...accounts.map(snapshotKey)]))
+export async function pruneStore($: EngineInterface, accounts: readonly string[]) {
+  const kept = new Set([...FIXED_KEYS, ...accounts.map(snapshotKey)])
+  for (const key of await $.store.keys()) {
+    if (!kept.has(key)) {
+      await $.store.delete(key)
+    }
+  }
 }

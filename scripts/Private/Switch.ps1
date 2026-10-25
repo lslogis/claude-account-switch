@@ -48,7 +48,7 @@ function Invoke-ProfileSwitch {
         } catch {
             Write-SwitcherLog (Get-SwitcherText SessionsNotSynced $_.Exception.Message)
         }
-        if ((Read-AccountProfile | Where-Object { $_.Name -eq $Name }).HasSignIn) {
+        if (Test-Path -LiteralPath (Join-Path (Get-ProfileDir $Name) 'auth.json')) {
             Restore-ProfileSignIn $ClaudeDir $Name
         } else {
             Clear-SignIn $ClaudeDir
@@ -61,7 +61,11 @@ function Invoke-ProfileSwitch {
             try {
                 Restore-SignInBackup $ClaudeDir $backup
             } catch {
-                Write-SwitcherLog (Get-SwitcherText RollbackFailed -Arguments (Split-Path $backup -Leaf), $_.Exception.Message)
+                # Said with the switch's own failure, as a failure of its category (the
+                # exit code): Claude holds what the failed step left, the backup what it had.
+                $rollback = Get-SwitcherText RollbackFailed -Arguments (Split-Path $backup -Leaf), $_.Exception.Message
+                $exception = New-Object InvalidOperationException -ArgumentList "$($failure.Exception.Message) $rollback", $failure.Exception
+                $failure = New-Object Management.Automation.ErrorRecord($exception, $failure.FullyQualifiedErrorId, $failure.CategoryInfo.Category, $null)
             }
         }
         throw $failure

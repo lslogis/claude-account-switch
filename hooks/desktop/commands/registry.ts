@@ -9,7 +9,7 @@ import { isProfileName } from '../domain/profileNames'
 export type OperandKind = 'name' | 'toggle'
 
 /** The words a toggle takes. */
-export const TOGGLE_WORDS = ['on', 'off'] as const
+const TOGGLE_WORDS = ['on', 'off'] as const
 
 /**
  * What a command does: a command of switch.ps1 that changes the profiles or
@@ -23,7 +23,6 @@ export const COMMANDS = {
   switch: { operands: ['name'], isDetached: true },
   save: { operands: ['name'] },
   add: { operands: ['name'] },
-  new: { operands: ['name'], isDetached: true },
   rename: { operands: ['name', 'name'] },
   delete: { operands: ['name'] },
   share: { operands: ['name', 'toggle'] },
